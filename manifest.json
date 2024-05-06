@@ -3,8 +3,6 @@
     "name": "YouTube Summarizer",
     "version": "1.0",
     "permissions": [
-        "activeTab",
-        "scripting",
         "storage"
     ],
     "action": {

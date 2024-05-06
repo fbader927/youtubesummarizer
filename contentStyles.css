@@ -68,3 +68,23 @@
 .contentContainer {
     margin-top: 40px;
 }
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: rotate 1s linear infinite;
+}

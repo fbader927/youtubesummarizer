@@ -7,8 +7,12 @@ function injectButton() {
         askButton.innerText = 'Summarize';
         askButton.id = 'askButton';
         askButton.className = 'style-scope ytd-menu-renderer action-button askButton';
-        console.log('Binding click event to Ask button');
         askButton.onclick = extractTranscript;
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'loading-indicator';
+        loadingIndicator.style.display = 'none'; 
+        askButton.appendChild(loadingIndicator);
+
         if (moreActionsMenu) {
             moreActionsMenu.before(askButton);
         } else {
@@ -19,11 +23,32 @@ function injectButton() {
     }
 }
 
+window.addEventListener('unload', function () {
+    const sidePane = document.getElementById('summary-side-pane');
+    if (sidePane) {
+        sidePane.innerHTML = ''; 
+    }
+    clearInterval(intervalId);
+    isSummarizing = false; 
+    hideLoadingIndicator(); 
+});
+
+function showLoadingIndicator() {
+    const loadingIndicator = document.querySelector('.loading-indicator');
+    if (loadingIndicator) loadingIndicator.style.display = 'inline-block';
+}
+
+function hideLoadingIndicator() {
+    const loadingIndicator = document.querySelector('.loading-indicator');
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+}
+
+
 function createCloseButton() {
     const closeButton = document.createElement('button');
     closeButton.setAttribute('aria-label', 'Close');
     closeButton.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="(link unavailable)">
             <path d="M18 6L6 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
@@ -33,30 +58,48 @@ function createCloseButton() {
     closeButton.onclick = () => {
         const sidePane = document.getElementById('summary-side-pane');
         if (sidePane) {
-            sidePane.style.display = 'none'; 
+            sidePane.style.display = 'none';
         }
     };
     return closeButton;
 }
 
-function toggleSummarySidePane(formattedSummary) {
+function createDynamicMessageContainer() {
+    let dynamicMessage = document.getElementById('dynamic-message');
+    if (!dynamicMessage) {
+        dynamicMessage = document.createElement('div');
+        dynamicMessage.id = 'dynamic-message';
+        dynamicMessage.className = 'dynamicMessage';
+        const sidePane = document.getElementById('summary-side-pane');
+        sidePane.prepend(dynamicMessage);
+    }
+    return dynamicMessage;
+}
+
+function updateDynamicMessage(message) {
+    const dynamicMessage = createDynamicMessageContainer();
+    dynamicMessage.innerHTML = message;
+}
+
+function toggleSummarySidePane(formattedSummary, append = false) {
     let sidePane = document.getElementById('summary-side-pane');
     if (!sidePane) {
         sidePane = document.createElement('div');
         sidePane.id = 'summary-side-pane';
         sidePane.className = 'summarySidePane';
-        const closeButton = createCloseButton();
-        sidePane.appendChild(closeButton);
         document.body.appendChild(sidePane);
-    } else {
-        const closeButton = sidePane.firstChild;
-        sidePane.innerHTML = '';
-        sidePane.appendChild(closeButton);
+        sidePane.appendChild(createCloseButton());
+        sidePane.appendChild(createDynamicMessageContainer());  
     }
+
+    if (!append) {
+        const contentContainers = sidePane.querySelectorAll('.contentContainer');
+        contentContainers.forEach(container => container.remove());
+    }
+
     const contentContainer = document.createElement('div');
     contentContainer.className = 'contentContainer';
-    formattedSummary = formattedSummary.replace(/\n/g, '<br>');
-    contentContainer.innerHTML = formattedSummary;
+    contentContainer.innerHTML = formattedSummary.replace(/\n/g, '<br>');
     sidePane.appendChild(contentContainer);
     sidePane.style.display = 'block';
 }
@@ -66,51 +109,95 @@ function clickShowTranscriptButton() {
     const showTranscriptButton = buttons.find(btn => btn.textContent.trim() === 'Show transcript');
     if (showTranscriptButton) {
         showTranscriptButton.click();
-        console.log('Clicked on Show transcript');
+        return true;
     } else {
-        console.error('Show transcript button not found.');
+        return false;
     }
 }
 
-function extractTranscript() {
-    console.log('extractTranscript called');
-    clickShowTranscriptButton();
-    toggleSummarySidePane('Summarizing Video...');
-    setTimeout(() => {
+function waitForTranscriptLoad(callback) {
+    let attempts = 0;
+    const checkTranscript = setInterval(() => {
         const transcriptSegments = document.querySelectorAll('ytd-transcript-segment-renderer');
+        if (transcriptSegments.length > 0 || attempts > 10) {
+            clearInterval(checkTranscript);
+            callback(transcriptSegments);
+        }
+        attempts++;
+    }, 500);
+}
+
+let intervalId;  
+let isSummarizing = false;
+
+function extractTranscript() {
+    if (isSummarizing) {
+        console.log("Summarization is already in progress.");
+        return;
+    }
+    isSummarizing = true;  
+    clearInterval(intervalId); 
+
+    showLoadingIndicator(); 
+
+    if (!clickShowTranscriptButton()) {
+        updateDynamicMessage('Transcript not available for this video.');
+        isSummarizing = false; 
+        hideLoadingIndicator();
+        return;
+    }
+
+    waitForTranscriptLoad((transcriptSegments) => {
+        if (!transcriptSegments.length) {
+            updateDynamicMessage('Transcript loading failed or not found.');
+            hideLoadingIndicator();
+            isSummarizing = false;  
+            return;
+        }
+
         let transcriptText = '';
         transcriptSegments.forEach(segment => {
             const time = segment.querySelector('div.segment-timestamp').innerText;
             const text = segment.querySelector('yt-formatted-string').innerText;
             transcriptText += time + ' ' + text + '\n';
         });
-        if (!transcriptText) {
-            console.error('Transcript segments not found.');
+
+        processTranscriptInChunks(transcriptText);
+    });
+}
+
+function processTranscriptInChunks(transcriptText) {
+    const chunkSize = 20000; 
+    let position = 0;
+
+    function summarizeNextChunk() {
+        if (position >= transcriptText.length) {
+            clearInterval(intervalId);
+            hideLoadingIndicator();
+            chrome.storage.local.remove('transcriptText', function () {
+                console.log('Transcript text cleared after processing.');
+            });
+            isSummarizing = false;  
             return;
         }
-        chrome.runtime.sendMessage({ action: 'summarize', text: transcriptText }, (response) => {
-            if (chrome.runtime.lastError || !response) {
-                console.error('Error:', chrome.runtime.lastError || 'No response received');
+
+        const chunk = transcriptText.substring(position, Math.min(position + chunkSize, transcriptText.length));
+        position += chunkSize;
+
+        chrome.runtime.sendMessage({ action: 'summarize', text: chunk }, (response) => {
+            if (!response.success) {
+                clearInterval(intervalId);
+                toggleSummarySidePane('Error in processing summary: ' + response.error);
+                hideLoadingIndicator();
+                isSummarizing = false;  
                 return;
             }
-            if (response.success) {
-                console.log('Summarized text:', response.data);
-                if (response.data.candidates &&
-                    response.data.candidates.length > 0 &&
-                    response.data.candidates[0].content &&
-                    response.data.candidates[0].content.parts &&
-                    response.data.candidates[0].content.parts.length > 0) {
-                    const summarizedTextPart = response.data.candidates[0].content.parts[0].text;
-                    console.log('Formatted summarized text:', summarizedTextPart);
-                    toggleSummarySidePane(summarizedTextPart);
-                } else {
-                    console.error('Expected parts not found in response.');
-                }
-            } else {
-                console.error('Error summarizing text:', response.error);
-            }
+            toggleSummarySidePane(response.data, true);  
+            summarizeNextChunk();  
         });
-    }, 3000);
+    }
+
+    summarizeNextChunk();
 }
 
 injectButton();
