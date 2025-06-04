@@ -50,13 +50,14 @@
     position: fixed;
     top: 56px;
     right: 20px;
-    width: 350px;
+    width: 380px;
     bottom: 56px;
-    background-color: #181818;
+    background: #1e1e1e;
     color: #FFF;
     border-left: 1px solid #303030;
-    padding: 16px;
-    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
+    border-radius: 8px 0 0 8px;
+    padding: 20px;
+    box-shadow: -4px 0 10px rgba(0, 0, 0, 0.3);
     overflow-y: auto;
     z-index: 1000;
     font-size: 16px;
@@ -80,6 +81,32 @@
     list-style-type: disc;
     margin-left: 20px;
     margin-top: 8px;
+}
+
+.summarySidePane strong {
+    font-weight: 600;
+}
+
+.dynamicMessage {
+    margin-bottom: 10px;
+    font-style: italic;
+    color: #ccc;
+}
+
+.pane-loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.pane-loading-indicator .spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: rotate 1s linear infinite;
 }
 
 @keyframes rotate {
