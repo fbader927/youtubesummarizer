@@ -1,4 +1,9 @@
 function injectButton() {
+    if (!location.href.includes('watch')) {
+        const existing = document.getElementById('askButton');
+        if (existing) existing.remove();
+        return;
+    }
     const moreActionsMenu = document.querySelector('ytd-menu-renderer yt-icon-button.dropdown-trigger');
     const descriptionBox = document.querySelector('ytd-video-secondary-info-renderer');
     const targetElement = moreActionsMenu || descriptionBox;
@@ -202,3 +207,15 @@ function processTranscriptInChunks(transcriptText) {
 
 injectButton();
 new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
+
+let lastUrl = location.href;
+setInterval(() => {
+    if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        injectButton();
+        if (!location.href.includes('watch')) {
+            const sidePane = document.getElementById('summary-side-pane');
+            if (sidePane) sidePane.style.display = 'none';
+        }
+    }
+}, 1000);
