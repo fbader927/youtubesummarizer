@@ -211,6 +211,9 @@ function processTranscriptInChunks(transcriptText) {
 
 let observer;
 
+// Sets up a MutationObserver that reinjects the button when the DOM changes
+// and resets it after navigating to a different video.
+
 function setupObserver() {
     if (observer) {
         observer.disconnect();
