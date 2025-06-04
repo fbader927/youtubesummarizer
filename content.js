@@ -210,9 +210,13 @@ function setupObserver() {
     observer.observe(document.body, { childList: true, subtree: true });
 }
 
-injectButton();
-setupObserver();
-window.addEventListener('yt-navigate-finish', () => {
+if (typeof module === 'undefined') {
     injectButton();
     setupObserver();
-});
+    window.addEventListener('yt-navigate-finish', () => {
+        injectButton();
+        setupObserver();
+    });
+} else {
+    module.exports = { createDynamicMessageContainer, toggleSummarySidePane };
+}
