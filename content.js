@@ -229,6 +229,27 @@ function clickShowTranscriptButton() {
     }
 }
 
+function fetchTranscriptFromCaptionsApi() {
+    try {
+        const playerResponse = window.ytInitialPlayerResponse ||
+            JSON.parse([...document.querySelectorAll('script')]
+                .map(s => s.textContent)
+                .find(t => t.includes('ytInitialPlayerResponse'))
+                .match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/)[1]);
+
+        const tracks = playerResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+        if (!tracks || !tracks.length) {
+            return Promise.reject('Transcript not available for this video.');
+        }
+
+        const track = tracks.find(t => t.languageCode === 'en') || tracks[0];
+        const url = track.baseUrl + '&fmt=json3';
+        return fetch(url).then(res => res.ok ? res.json() : Promise.reject('Transcript fetch failed'));
+    } catch (e) {
+        return Promise.reject('Transcript not available for this video.');
+    }
+}
+
 function waitForTranscriptLoad(callback) {
     let attempts = 0;
     const checkTranscript = setInterval(() => {
@@ -256,30 +277,28 @@ function extractTranscript() {
     showLoadingIndicator();
     showSummaryLoading();
 
-    if (!clickShowTranscriptButton()) {
-        updateDynamicMessage('Transcript not available for this video.');
-        isSummarizing = false; 
-        hideLoadingIndicator();
-        return;
-    }
+    fetchTranscriptFromCaptionsApi()
+        .then(data => {
+            if (!data || !data.events) {
+                throw new Error('Transcript loading failed or not found.');
+            }
 
-    waitForTranscriptLoad((transcriptSegments) => {
-        if (!transcriptSegments.length) {
-            updateDynamicMessage('Transcript loading failed or not found.');
+            let transcriptText = '';
+            data.events.forEach(event => {
+                if (!event.segs) return;
+                const time = new Date(event.tStartMs).toISOString().substr(11, 8);
+                const text = event.segs.map(s => s.utf8).join('');
+                transcriptText += time + ' ' + text + '\n';
+            });
+
+            processTranscriptInChunks(transcriptText);
+        })
+        .catch(err => {
+            updateDynamicMessage(typeof err === 'string' ? err : err.message);
             hideLoadingIndicator();
-            isSummarizing = false;  
-            return;
-        }
-
-        let transcriptText = '';
-        transcriptSegments.forEach(segment => {
-            const time = segment.querySelector('div.segment-timestamp').innerText;
-            const text = segment.querySelector('yt-formatted-string').innerText;
-            transcriptText += time + ' ' + text + '\n';
+            hideSummaryLoading();
+            isSummarizing = false;
         });
-
-        processTranscriptInChunks(transcriptText);
-    });
 }
 
 function processTranscriptInChunks(transcriptText) {
@@ -335,6 +354,8 @@ if (typeof module === 'undefined') {
         closeSummarySidePane,
         showSummaryLoading,
         hideSummaryLoading,
-        appendSummaryChunkStreaming
+        appendSummaryChunkStreaming,
+        fetchTranscriptFromCaptionsApi,
+        extractTranscript
     };
 }
