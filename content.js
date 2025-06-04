@@ -1,4 +1,7 @@
 function injectButton() {
+    if (window.location.pathname !== '/watch') {
+        return;
+    }
     const moreActionsMenu = document.querySelector('ytd-menu-renderer yt-icon-button.dropdown-trigger');
     const descriptionBox = document.querySelector('ytd-video-secondary-info-renderer');
     const targetElement = moreActionsMenu || descriptionBox;
