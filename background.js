@@ -10,7 +10,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         })
             .then(response => response.ok ? response.json() : Promise.reject('HTTP error, status = ' + response.status))
             .then(data => sendResponse({ success: true, data: decodeURIComponent(data.choices[0].message.content) }))
-            .catch(error => sendResponse({ success: false, error: error }));
+            .catch(error => {
+                const errorMessage = error && error.message ? error.message : String(error);
+                sendResponse({ success: false, error: errorMessage });
+            });
 
         return true;
     }
