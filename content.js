@@ -84,6 +84,23 @@ function createMinimizeButton() {
     return minimizeButton;
 }
 
+function ensureSidePane() {
+    let sidePane = document.getElementById('summary-side-pane');
+    if (!sidePane) {
+        sidePane = document.createElement('div');
+        sidePane.id = 'summary-side-pane';
+        sidePane.className = 'summarySidePane';
+        document.body.appendChild(sidePane);
+    }
+    if (!sidePane.querySelector('#summary-close-button')) {
+        sidePane.appendChild(createCloseButton());
+    }
+    if (!sidePane.querySelector('#summary-minimize-button')) {
+        sidePane.appendChild(createMinimizeButton());
+    }
+    return sidePane;
+}
+
 function createDynamicMessageContainer() {
     let dynamicMessage = document.getElementById('dynamic-message');
     if (!dynamicMessage) {
@@ -91,16 +108,7 @@ function createDynamicMessageContainer() {
         dynamicMessage.id = 'dynamic-message';
         dynamicMessage.className = 'dynamicMessage';
 
-        let sidePane = document.getElementById('summary-side-pane');
-        if (!sidePane) {
-            sidePane = document.createElement('div');
-            sidePane.id = 'summary-side-pane';
-            sidePane.className = 'summarySidePane';
-            document.body.appendChild(sidePane);
-            sidePane.appendChild(createCloseButton());
-            sidePane.appendChild(createMinimizeButton());
-        }
-
+        const sidePane = ensureSidePane();
         sidePane.prepend(dynamicMessage);
     }
     return dynamicMessage;
@@ -112,16 +120,8 @@ function updateDynamicMessage(message) {
 }
 
 function showSummaryLoading() {
-    let sidePane = document.getElementById('summary-side-pane');
-    if (!sidePane) {
-        sidePane = document.createElement('div');
-        sidePane.id = 'summary-side-pane';
-        sidePane.className = 'summarySidePane';
-        document.body.appendChild(sidePane);
-        sidePane.appendChild(createCloseButton());
-        sidePane.appendChild(createMinimizeButton());
-        sidePane.appendChild(createDynamicMessageContainer());
-    }
+    const sidePane = ensureSidePane();
+    createDynamicMessageContainer();
 
     const existing = sidePane.querySelector('.pane-loading-indicator');
     if (!existing) {
@@ -187,16 +187,8 @@ function appendSummaryChunkStreaming(formattedSummary) {
 }
 
 function toggleSummarySidePane(formattedSummary, append = false) {
-    let sidePane = document.getElementById('summary-side-pane');
-    if (!sidePane) {
-        sidePane = document.createElement('div');
-        sidePane.id = 'summary-side-pane';
-        sidePane.className = 'summarySidePane';
-        document.body.appendChild(sidePane);
-        sidePane.appendChild(createCloseButton());
-        sidePane.appendChild(createMinimizeButton());
-        sidePane.appendChild(createDynamicMessageContainer());
-    }
+    const sidePane = ensureSidePane();
+    createDynamicMessageContainer();
 
     if (!append) {
         const contentContainers = sidePane.querySelectorAll('.contentContainer');
