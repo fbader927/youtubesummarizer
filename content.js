@@ -199,9 +199,10 @@ function processTranscriptInChunks(transcriptText) {
         chrome.runtime.sendMessage({ action: 'summarize', text: chunk }, (response) => {
             if (!response.success) {
                 clearInterval(intervalId);
-                toggleSummarySidePane('Error in processing summary: ' + response.error);
+                const errorText = response.error || 'Unknown error';
+                toggleSummarySidePane('Error in processing summary: ' + errorText + '. Please reload and try again.');
                 hideLoadingIndicator();
-                isSummarizing = false;  
+                isSummarizing = false;
                 return;
             }
             toggleSummarySidePane(response.data, true);  
