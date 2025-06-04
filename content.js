@@ -32,6 +32,10 @@ function closeSummarySidePane() {
         sidePane.innerHTML = '';
         sidePane.style.display = 'none';
     }
+    if (restoreButton) {
+        restoreButton.remove();
+        restoreButton = null;
+    }
     clearInterval(intervalId);
     isSummarizing = false;
     hideLoadingIndicator();
@@ -62,13 +66,22 @@ function createCloseButton() {
     closeButton.id = 'summary-close-button';
     closeButton.className = 'summaryCloseButton';
     closeButton.title = 'Close';
-    closeButton.onclick = () => {
-        const sidePane = document.getElementById('summary-side-pane');
-        if (sidePane) {
-            sidePane.style.display = 'none';
-        }
-    };
+    closeButton.onclick = closeSummarySidePane;
     return closeButton;
+}
+
+function createMinimizeButton() {
+    const minimizeButton = document.createElement('button');
+    minimizeButton.setAttribute('aria-label', 'Minimize');
+    minimizeButton.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>`;
+    minimizeButton.id = 'summary-minimize-button';
+    minimizeButton.className = 'summaryMinimizeButton';
+    minimizeButton.title = 'Minimize';
+    minimizeButton.onclick = minimizeSummarySidePane;
+    return minimizeButton;
 }
 
 function createDynamicMessageContainer() {
@@ -85,6 +98,7 @@ function createDynamicMessageContainer() {
             sidePane.className = 'summarySidePane';
             document.body.appendChild(sidePane);
             sidePane.appendChild(createCloseButton());
+            sidePane.appendChild(createMinimizeButton());
         }
 
         sidePane.prepend(dynamicMessage);
@@ -105,6 +119,7 @@ function showSummaryLoading() {
         sidePane.className = 'summarySidePane';
         document.body.appendChild(sidePane);
         sidePane.appendChild(createCloseButton());
+        sidePane.appendChild(createMinimizeButton());
         sidePane.appendChild(createDynamicMessageContainer());
     }
 
@@ -123,6 +138,28 @@ function hideSummaryLoading() {
     if (!sidePane) return;
     const loading = sidePane.querySelector('.pane-loading-indicator');
     if (loading) loading.remove();
+}
+
+function minimizeSummarySidePane() {
+    const sidePane = document.getElementById('summary-side-pane');
+    if (!sidePane || restoreButton) return;
+    sidePane.style.display = 'none';
+    restoreButton = document.createElement('button');
+    restoreButton.id = 'summary-restore-button';
+    restoreButton.className = 'summaryRestoreButton';
+    restoreButton.title = 'Show Summary';
+    restoreButton.setAttribute('aria-label', 'Show Summary');
+    restoreButton.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5V19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>`;
+    restoreButton.onclick = () => {
+        sidePane.style.display = 'block';
+        restoreButton.remove();
+        restoreButton = null;
+    };
+    document.body.appendChild(restoreButton);
 }
 
 function appendSummaryChunkStreaming(formattedSummary) {
@@ -157,7 +194,8 @@ function toggleSummarySidePane(formattedSummary, append = false) {
         sidePane.className = 'summarySidePane';
         document.body.appendChild(sidePane);
         sidePane.appendChild(createCloseButton());
-        sidePane.appendChild(createDynamicMessageContainer());  
+        sidePane.appendChild(createMinimizeButton());
+        sidePane.appendChild(createDynamicMessageContainer());
     }
 
     if (!append) {
@@ -199,8 +237,9 @@ function waitForTranscriptLoad(callback) {
     }, 500);
 }
 
-let intervalId;  
+let intervalId;
 let isSummarizing = false;
+let restoreButton = null;
 
 function extractTranscript() {
     if (isSummarizing) {
