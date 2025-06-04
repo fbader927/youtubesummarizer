@@ -212,6 +212,7 @@ function processTranscriptInChunks(transcriptText) {
 if (typeof module === 'undefined') {
     injectButton();
     new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('yt-navigate-finish', () => setTimeout(injectButton, 1000));
 } else {
     module.exports = { createDynamicMessageContainer, toggleSummarySidePane };
 }
