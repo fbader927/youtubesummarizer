@@ -35,6 +35,7 @@ function closeSummarySidePane() {
     clearInterval(intervalId);
     isSummarizing = false;
     hideLoadingIndicator();
+    hideSummaryLoading();
 }
 
 window.addEventListener('unload', closeSummarySidePane);
@@ -96,6 +97,58 @@ function updateDynamicMessage(message) {
     dynamicMessage.innerHTML = message;
 }
 
+function showSummaryLoading() {
+    let sidePane = document.getElementById('summary-side-pane');
+    if (!sidePane) {
+        sidePane = document.createElement('div');
+        sidePane.id = 'summary-side-pane';
+        sidePane.className = 'summarySidePane';
+        document.body.appendChild(sidePane);
+        sidePane.appendChild(createCloseButton());
+        sidePane.appendChild(createDynamicMessageContainer());
+    }
+
+    const existing = sidePane.querySelector('.pane-loading-indicator');
+    if (!existing) {
+        const loading = document.createElement('div');
+        loading.className = 'pane-loading-indicator';
+        loading.innerHTML = '<div class="spinner"></div>';
+        sidePane.appendChild(loading);
+    }
+    sidePane.style.display = 'block';
+}
+
+function hideSummaryLoading() {
+    const sidePane = document.getElementById('summary-side-pane');
+    if (!sidePane) return;
+    const loading = sidePane.querySelector('.pane-loading-indicator');
+    if (loading) loading.remove();
+}
+
+function appendSummaryChunkStreaming(formattedSummary) {
+    hideSummaryLoading();
+    let sidePane = document.getElementById('summary-side-pane');
+    if (!sidePane) return;
+
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'contentContainer';
+    sidePane.appendChild(contentContainer);
+
+    const html = typeof marked !== 'undefined' ? marked.parse(formattedSummary) : formattedSummary.replace(/\n/g, '<br>');
+    let index = 0;
+
+    function type() {
+        if (index <= html.length) {
+            contentContainer.innerHTML = html.slice(0, index);
+            index++;
+            requestAnimationFrame(type);
+        }
+    }
+
+    type();
+    sidePane.style.display = 'block';
+}
+
 function toggleSummarySidePane(formattedSummary, append = false) {
     let sidePane = document.getElementById('summary-side-pane');
     if (!sidePane) {
@@ -154,10 +207,11 @@ function extractTranscript() {
         console.log("Summarization is already in progress.");
         return;
     }
-    isSummarizing = true;  
-    clearInterval(intervalId); 
+    isSummarizing = true;
+    clearInterval(intervalId);
 
-    showLoadingIndicator(); 
+    showLoadingIndicator();
+    showSummaryLoading();
 
     if (!clickShowTranscriptButton()) {
         updateDynamicMessage('Transcript not available for this video.');
@@ -186,17 +240,18 @@ function extractTranscript() {
 }
 
 function processTranscriptInChunks(transcriptText) {
-    const chunkSize = 20000; 
+    const chunkSize = 20000;
     let position = 0;
 
     function summarizeNextChunk() {
         if (position >= transcriptText.length) {
             clearInterval(intervalId);
             hideLoadingIndicator();
+            hideSummaryLoading();
             chrome.storage.local.remove('transcriptText', function () {
                 console.log('Transcript text cleared after processing.');
             });
-            isSummarizing = false;  
+            isSummarizing = false;
             return;
         }
 
@@ -212,8 +267,8 @@ function processTranscriptInChunks(transcriptText) {
                 isSummarizing = false;
                 return;
             }
-            toggleSummarySidePane(response.data, true);  
-            summarizeNextChunk();  
+            appendSummaryChunkStreaming(response.data);
+            summarizeNextChunk();
         });
     }
 
@@ -231,5 +286,12 @@ if (typeof module === 'undefined') {
         setTimeout(injectButton, 1000);
     });
 } else {
-    module.exports = { createDynamicMessageContainer, toggleSummarySidePane, closeSummarySidePane };
+    module.exports = {
+        createDynamicMessageContainer,
+        toggleSummarySidePane,
+        closeSummarySidePane,
+        showSummaryLoading,
+        hideSummaryLoading,
+        appendSummaryChunkStreaming
+    };
 }
