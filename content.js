@@ -200,5 +200,19 @@ function processTranscriptInChunks(transcriptText) {
     summarizeNextChunk();
 }
 
+let observer;
+
+function setupObserver() {
+    if (observer) {
+        observer.disconnect();
+    }
+    observer = new MutationObserver(injectButton);
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
 injectButton();
-new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
+setupObserver();
+window.addEventListener('yt-navigate-finish', () => {
+    injectButton();
+    setupObserver();
+});
