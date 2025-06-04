@@ -70,7 +70,16 @@ function createDynamicMessageContainer() {
         dynamicMessage = document.createElement('div');
         dynamicMessage.id = 'dynamic-message';
         dynamicMessage.className = 'dynamicMessage';
-        const sidePane = document.getElementById('summary-side-pane');
+
+        let sidePane = document.getElementById('summary-side-pane');
+        if (!sidePane) {
+            sidePane = document.createElement('div');
+            sidePane.id = 'summary-side-pane';
+            sidePane.className = 'summarySidePane';
+            document.body.appendChild(sidePane);
+            sidePane.appendChild(createCloseButton());
+        }
+
         sidePane.prepend(dynamicMessage);
     }
     return dynamicMessage;
