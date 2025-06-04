@@ -169,7 +169,7 @@ function minimizeSummarySidePane() {
 function appendSummaryChunkStreaming(formattedSummary) {
     hideSummaryLoading();
     let sidePane = document.getElementById('summary-side-pane');
-    if (!sidePane) return;
+    if (!sidePane) return Promise.resolve();
 
     const contentContainer = document.createElement('div');
     contentContainer.className = 'contentContainer';
@@ -178,16 +178,20 @@ function appendSummaryChunkStreaming(formattedSummary) {
     const html = typeof marked !== 'undefined' ? marked.parse(formattedSummary) : formattedSummary.replace(/\n/g, '<br>');
     let index = 0;
 
-    function type() {
-        if (index <= html.length) {
-            contentContainer.innerHTML = html.slice(0, index);
-            index++;
-            requestAnimationFrame(type);
+    return new Promise(resolve => {
+        function type() {
+            if (index <= html.length) {
+                contentContainer.innerHTML = html.slice(0, index);
+                index++;
+                requestAnimationFrame(type);
+            } else {
+                resolve();
+            }
         }
-    }
 
-    type();
-    sidePane.style.display = 'block';
+        type();
+        sidePane.style.display = 'block';
+    });
 }
 
 function toggleSummarySidePane(formattedSummary, append = false) {
@@ -329,8 +333,9 @@ function processTranscriptInChunks(transcriptText) {
                 isSummarizing = false;
                 return;
             }
-            appendSummaryChunkStreaming(response.data);
-            summarizeNextChunk();
+            appendSummaryChunkStreaming(response.data).then(() => {
+                summarizeNextChunk();
+            });
         });
     }
 
