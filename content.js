@@ -29,7 +29,11 @@ function injectButton() {
 function closeSummarySidePane() {
     const sidePane = document.getElementById('summary-side-pane');
     if (sidePane) {
-        sidePane.innerHTML = '';
+        sidePane.querySelectorAll('.contentContainer').forEach(el => el.remove());
+        const loading = sidePane.querySelector('.pane-loading-indicator');
+        if (loading) loading.remove();
+        const dynamicMessage = document.getElementById('dynamic-message');
+        if (dynamicMessage) dynamicMessage.innerHTML = '';
         sidePane.style.display = 'none';
     }
     if (restoreButton) {

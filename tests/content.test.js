@@ -27,11 +27,13 @@ describe('toggleSummarySidePane', () => {
 });
 
 describe('closeSummarySidePane', () => {
-  test('should hide and clear the side pane', () => {
+  test('should hide the side pane and remove summary content only', () => {
     toggleSummarySidePane('hello');
     closeSummarySidePane();
     const sidePane = document.getElementById('summary-side-pane');
     expect(sidePane.style.display).toBe('none');
-    expect(sidePane.innerHTML).toBe('');
+    expect(sidePane.querySelector('.contentContainer')).toBeNull();
+    expect(document.getElementById('summary-close-button')).not.toBeNull();
+    expect(document.getElementById('summary-minimize-button')).not.toBeNull();
   });
 });
