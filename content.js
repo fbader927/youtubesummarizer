@@ -48,7 +48,7 @@ function createCloseButton() {
     const closeButton = document.createElement('button');
     closeButton.setAttribute('aria-label', 'Close');
     closeButton.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="(link unavailable)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 6L6 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
@@ -70,7 +70,16 @@ function createDynamicMessageContainer() {
         dynamicMessage = document.createElement('div');
         dynamicMessage.id = 'dynamic-message';
         dynamicMessage.className = 'dynamicMessage';
-        const sidePane = document.getElementById('summary-side-pane');
+
+        let sidePane = document.getElementById('summary-side-pane');
+        if (!sidePane) {
+            sidePane = document.createElement('div');
+            sidePane.id = 'summary-side-pane';
+            sidePane.className = 'summarySidePane';
+            document.body.appendChild(sidePane);
+            sidePane.appendChild(createCloseButton());
+        }
+
         sidePane.prepend(dynamicMessage);
     }
     return dynamicMessage;
@@ -217,6 +226,7 @@ if (typeof module === 'undefined') {
         injectButton();
         setupObserver();
     });
+
 } else {
     module.exports = { createDynamicMessageContainer, toggleSummarySidePane };
 }
