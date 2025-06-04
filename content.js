@@ -114,7 +114,11 @@ function toggleSummarySidePane(formattedSummary, append = false) {
 
     const contentContainer = document.createElement('div');
     contentContainer.className = 'contentContainer';
-    contentContainer.innerHTML = formattedSummary.replace(/\n/g, '<br>');
+    if (typeof marked !== 'undefined') {
+        contentContainer.innerHTML = marked.parse(formattedSummary);
+    } else {
+        contentContainer.innerHTML = formattedSummary.replace(/\n/g, '<br>');
+    }
     sidePane.appendChild(contentContainer);
     sidePane.style.display = 'block';
 }
