@@ -1,4 +1,4 @@
-const { createDynamicMessageContainer, toggleSummarySidePane } = require('../content');
+const { createDynamicMessageContainer, toggleSummarySidePane, closeSummarySidePane } = require('../content');
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -23,5 +23,15 @@ describe('toggleSummarySidePane', () => {
     const containers = sidePane.querySelectorAll('.contentContainer');
     expect(containers.length).toBe(1);
     expect(containers[0].innerHTML).toBe('hello');
+  });
+});
+
+describe('closeSummarySidePane', () => {
+  test('should hide and clear the side pane', () => {
+    toggleSummarySidePane('hello');
+    closeSummarySidePane();
+    const sidePane = document.getElementById('summary-side-pane');
+    expect(sidePane.style.display).toBe('none');
+    expect(sidePane.innerHTML).toBe('');
   });
 });

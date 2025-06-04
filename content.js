@@ -26,15 +26,18 @@ function injectButton() {
     }
 }
 
-window.addEventListener('unload', function () {
+function closeSummarySidePane() {
     const sidePane = document.getElementById('summary-side-pane');
     if (sidePane) {
-        sidePane.innerHTML = ''; 
+        sidePane.innerHTML = '';
+        sidePane.style.display = 'none';
     }
     clearInterval(intervalId);
-    isSummarizing = false; 
-    hideLoadingIndicator(); 
-});
+    isSummarizing = false;
+    hideLoadingIndicator();
+}
+
+window.addEventListener('unload', closeSummarySidePane);
 
 function showLoadingIndicator() {
     const loadingIndicator = document.querySelector('.loading-indicator');
@@ -216,7 +219,13 @@ function processTranscriptInChunks(transcriptText) {
 if (typeof module === 'undefined') {
     injectButton();
     new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
-    window.addEventListener('yt-navigate-finish', () => setTimeout(injectButton, 1000));
+    window.addEventListener('yt-navigate-start', closeSummarySidePane);
+    window.addEventListener('yt-navigate-finish', () => {
+        if (window.location.pathname !== '/watch') {
+            closeSummarySidePane();
+        }
+        setTimeout(injectButton, 1000);
+    });
 } else {
-    module.exports = { createDynamicMessageContainer, toggleSummarySidePane };
+    module.exports = { createDynamicMessageContainer, toggleSummarySidePane, closeSummarySidePane };
 }
