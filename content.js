@@ -209,5 +209,9 @@ function processTranscriptInChunks(transcriptText) {
     summarizeNextChunk();
 }
 
-injectButton();
-new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
+if (typeof module === 'undefined') {
+    injectButton();
+    new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
+} else {
+    module.exports = { createDynamicMessageContainer, toggleSummarySidePane };
+}
