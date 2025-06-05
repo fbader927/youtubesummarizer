@@ -235,11 +235,22 @@ function clickShowTranscriptButton() {
 
 function fetchTranscriptFromCaptionsApi() {
     try {
-        const playerResponse = window.ytInitialPlayerResponse ||
-            JSON.parse([...document.querySelectorAll('script')]
+        let playerResponse = window.ytInitialPlayerResponse;
+
+        if (!playerResponse) {
+            const scripts = [...document.querySelectorAll('script')].reverse();
+            const scriptContent = scripts
                 .map(s => s.textContent)
-                .find(t => t.includes('ytInitialPlayerResponse'))
-                .match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/)[1]);
+                .find(t => t.includes('ytInitialPlayerResponse'));
+            if (!scriptContent) {
+                return Promise.reject('Transcript not available for this video.');
+            }
+            const match = scriptContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/);
+            if (!match) {
+                return Promise.reject('Transcript not available for this video.');
+            }
+            playerResponse = JSON.parse(match[1]);
+        }
 
         const tracks = playerResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks;
         if (!tracks || !tracks.length) {

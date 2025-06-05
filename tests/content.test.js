@@ -37,3 +37,26 @@ describe('closeSummarySidePane', () => {
     expect(document.getElementById('summary-minimize-button')).not.toBeNull();
   });
 });
+
+describe('fetchTranscriptFromCaptionsApi', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ events: [] }) }));
+    delete global.window.ytInitialPlayerResponse;
+  });
+
+  test('uses the most recent ytInitialPlayerResponse script', async () => {
+    const oldScript = document.createElement('script');
+    oldScript.textContent = 'var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"old","languageCode":"en"}]}}};';
+    document.body.appendChild(oldScript);
+
+    const newScript = document.createElement('script');
+    newScript.textContent = 'var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"new","languageCode":"en"}]}}};';
+    document.body.appendChild(newScript);
+
+    const { fetchTranscriptFromCaptionsApi } = require('../content');
+    await fetchTranscriptFromCaptionsApi();
+
+    expect(fetch).toHaveBeenCalledWith('new&fmt=json3');
+  });
+});
