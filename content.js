@@ -42,11 +42,21 @@ function closeSummarySidePane() {
     }
     clearInterval(intervalId);
     isSummarizing = false;
+    cancelSummarization = true;
     hideLoadingIndicator();
     hideSummaryLoading();
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.remove('transcriptText', function () {
+            console.log('Transcript text cleared.');
+        });
+    }
+    delete window.ytInitialPlayerResponse;
 }
 
-window.addEventListener('unload', closeSummarySidePane);
+window.addEventListener('unload', () => {
+    closeSummarySidePane();
+    delete window.ytInitialPlayerResponse;
+});
 
 function showLoadingIndicator() {
     const loadingIndicator = document.querySelector('.loading-indicator');
@@ -167,6 +177,7 @@ function minimizeSummarySidePane() {
 }
 
 function appendSummaryChunkStreaming(formattedSummary) {
+    if (cancelSummarization) return Promise.resolve();
     hideSummaryLoading();
     let sidePane = document.getElementById('summary-side-pane');
     if (!sidePane) return Promise.resolve();
@@ -180,6 +191,10 @@ function appendSummaryChunkStreaming(formattedSummary) {
 
     return new Promise(resolve => {
         function type() {
+            if (cancelSummarization) {
+                resolve();
+                return;
+            }
             if (index <= html.length) {
                 contentContainer.innerHTML = html.slice(0, index);
                 index++;
@@ -285,6 +300,7 @@ function waitForTranscriptLoad(callback) {
 
 let intervalId;
 let isSummarizing = false;
+let cancelSummarization = false;
 let restoreButton = null;
 
 function extractTranscript() {
@@ -293,6 +309,7 @@ function extractTranscript() {
         return;
     }
     isSummarizing = true;
+    cancelSummarization = false;
     clearInterval(intervalId);
 
     showLoadingIndicator();
@@ -327,6 +344,12 @@ function processTranscriptInChunks(transcriptText) {
     let position = 0;
 
     function summarizeNextChunk() {
+        if (cancelSummarization) {
+            hideLoadingIndicator();
+            hideSummaryLoading();
+            isSummarizing = false;
+            return;
+        }
         if (position >= transcriptText.length) {
             clearInterval(intervalId);
             hideLoadingIndicator();
@@ -362,7 +385,10 @@ function processTranscriptInChunks(transcriptText) {
 if (typeof module === 'undefined') {
     injectButton();
     new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
-    window.addEventListener('yt-navigate-start', closeSummarySidePane);
+    window.addEventListener('yt-navigate-start', () => {
+        delete window.ytInitialPlayerResponse;
+        closeSummarySidePane();
+    });
     window.addEventListener('yt-navigate-finish', () => {
         if (window.location.pathname !== '/watch') {
             closeSummarySidePane();
