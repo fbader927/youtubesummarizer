@@ -235,11 +235,16 @@ function clickShowTranscriptButton() {
 
 function fetchTranscriptFromCaptionsApi() {
     try {
-        const scripts = [...document.querySelectorAll('script')]
-            .map(s => s.textContent)
-            .filter(t => t.includes('ytInitialPlayerResponse'));
-        const playerResponse = JSON.parse(scripts.pop()
-            .match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/)[1]);
+        let playerResponse = window.ytInitialPlayerResponse;
+        if (!playerResponse || !playerResponse.captions) {
+            const scripts = [...document.querySelectorAll('script')]
+                .map(s => s.textContent)
+                .filter(t => t.includes('ytInitialPlayerResponse'));
+            const lastScript = scripts.pop();
+            if (!lastScript) throw new Error('No player response script found');
+            playerResponse = JSON.parse(lastScript
+                .match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/)[1]);
+        }
 
         const tracks = playerResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks;
         if (!tracks || !tracks.length) {

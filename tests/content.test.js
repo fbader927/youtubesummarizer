@@ -49,4 +49,22 @@ describe('fetchTranscriptFromCaptionsApi', () => {
     expect(global.fetch).toHaveBeenCalledWith('https://new&fmt=json3');
     delete global.fetch;
   });
+
+  test('prefers window.ytInitialPlayerResponse when available', async () => {
+    window.ytInitialPlayerResponse = {
+      captions: {
+        playerCaptionsTracklistRenderer: {
+          captionTracks: [{ languageCode: 'en', baseUrl: 'https://window' }]
+        }
+      }
+    };
+    document.body.innerHTML = `
+      <script>var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"languageCode":"en","baseUrl":"https://old"}]}}};</script>
+    `;
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+    await fetchTranscriptFromCaptionsApi();
+    expect(global.fetch).toHaveBeenCalledWith('https://window&fmt=json3');
+    delete global.fetch;
+    delete window.ytInitialPlayerResponse;
+  });
 });
