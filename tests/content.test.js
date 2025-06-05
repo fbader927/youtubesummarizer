@@ -37,3 +37,41 @@ describe('closeSummarySidePane', () => {
     expect(document.getElementById('summary-minimize-button')).not.toBeNull();
   });
 });
+
+describe('fetchTranscriptFromCaptionsApi', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ events: [] }) }));
+    delete global.window.ytInitialPlayerResponse;
+  });
+
+  test('uses the most recent ytInitialPlayerResponse script with captionTracks', async () => {
+    const oldScript = document.createElement('script');
+    oldScript.textContent = 'var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"old","languageCode":"en"}]}}};';
+    document.body.appendChild(oldScript);
+
+    const newScript = document.createElement('script');
+    newScript.textContent = 'var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"new","languageCode":"en"}]}}};';
+    document.body.appendChild(newScript);
+
+    const { fetchTranscriptFromCaptionsApi } = require('../content');
+    await fetchTranscriptFromCaptionsApi();
+
+    expect(fetch).toHaveBeenCalledWith('new&fmt=json3');
+  });
+
+  test('ignores scripts without captionTracks', async () => {
+    const emptyScript = document.createElement('script');
+    emptyScript.textContent = 'var ytInitialPlayerResponse = {}';
+    document.body.appendChild(emptyScript);
+
+    const goodScript = document.createElement('script');
+    goodScript.textContent = 'var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"good","languageCode":"en"}]}}};';
+    document.body.appendChild(goodScript);
+
+    const { fetchTranscriptFromCaptionsApi } = require('../content');
+    await fetchTranscriptFromCaptionsApi();
+
+    expect(fetch).toHaveBeenCalledWith('good&fmt=json3');
+  });
+});
