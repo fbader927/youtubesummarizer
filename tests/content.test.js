@@ -1,4 +1,4 @@
-const { createDynamicMessageContainer, toggleSummarySidePane, closeSummarySidePane } = require('../content');
+const { createDynamicMessageContainer, toggleSummarySidePane, closeSummarySidePane, fetchTranscriptFromCaptionsApi } = require('../content');
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -35,5 +35,18 @@ describe('closeSummarySidePane', () => {
     expect(sidePane.querySelector('.contentContainer')).toBeNull();
     expect(document.getElementById('summary-close-button')).not.toBeNull();
     expect(document.getElementById('summary-minimize-button')).not.toBeNull();
+  });
+});
+
+describe('fetchTranscriptFromCaptionsApi', () => {
+  test('uses the most recent ytInitialPlayerResponse script', async () => {
+    document.body.innerHTML = `
+      <script>var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"languageCode":"en","baseUrl":"https://old"}]}}};</script>
+      <script>var ytInitialPlayerResponse = {"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"languageCode":"en","baseUrl":"https://new"}]}}};</script>
+    `;
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+    await fetchTranscriptFromCaptionsApi();
+    expect(global.fetch).toHaveBeenCalledWith('https://new&fmt=json3');
+    delete global.fetch;
   });
 });
