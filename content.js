@@ -252,8 +252,10 @@ function fetchTranscriptFromCaptionsApi() {
     try {
         let playerResponse;
 
-        const scriptContent = [...document.querySelectorAll('script')]
+        const scripts = Array.from(document.querySelectorAll('script'));
+        const scriptContent = scripts
             .map(s => s.textContent)
+            .reverse()
             .find(t => t.includes('ytInitialPlayerResponse'));
 
         if (scriptContent) {
@@ -385,8 +387,11 @@ function processTranscriptInChunks(transcriptText) {
 if (typeof module === 'undefined') {
     injectButton();
     new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
-    window.addEventListener('yt-navigate-start', () => {
+    function resetPlayerResponse() {
         delete window.ytInitialPlayerResponse;
+    }
+    window.addEventListener('yt-navigate-start', () => {
+        resetPlayerResponse();
         closeSummarySidePane();
     });
     window.addEventListener('yt-navigate-finish', () => {
@@ -395,6 +400,7 @@ if (typeof module === 'undefined') {
         }
         setTimeout(injectButton, 1000);
     });
+    window.addEventListener('yt-page-data-updated', resetPlayerResponse);
 } else {
     module.exports = {
         createDynamicMessageContainer,
