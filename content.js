@@ -250,23 +250,22 @@ function clickShowTranscriptButton() {
 
 function fetchTranscriptFromCaptionsApi() {
     try {
-        let playerResponse;
-
-        const scriptContent = [...document.querySelectorAll('script')]
-            .map(s => s.textContent)
-            .find(t => t.includes('ytInitialPlayerResponse'));
-
-        if (scriptContent) {
-            const match = scriptContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/);
-            if (match && match[1]) {
-                playerResponse = JSON.parse(match[1]);
-                // ensure global is updated for subsequent reads
-                window.ytInitialPlayerResponse = playerResponse;
-            }
-        }
+        let playerResponse = window.ytInitialPlayerResponse;
 
         if (!playerResponse) {
-            playerResponse = window.ytInitialPlayerResponse;
+            const scripts = [...document.querySelectorAll('script')]
+                .map(s => s.textContent)
+                .filter(t => t.includes('ytInitialPlayerResponse'));
+            const scriptContent = scripts[scripts.length - 1];
+
+            if (scriptContent) {
+                const match = scriptContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/);
+                if (match && match[1]) {
+                    playerResponse = JSON.parse(match[1]);
+                    // ensure global is updated for subsequent reads
+                    window.ytInitialPlayerResponse = playerResponse;
+                }
+            }
         }
 
         if (!playerResponse) {

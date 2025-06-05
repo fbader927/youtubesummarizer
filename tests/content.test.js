@@ -1,4 +1,4 @@
-const { createDynamicMessageContainer, toggleSummarySidePane, closeSummarySidePane } = require('../content');
+const { createDynamicMessageContainer, toggleSummarySidePane, closeSummarySidePane, fetchTranscriptFromCaptionsApi } = require('../content');
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -35,5 +35,20 @@ describe('closeSummarySidePane', () => {
     expect(sidePane.querySelector('.contentContainer')).toBeNull();
     expect(document.getElementById('summary-close-button')).not.toBeNull();
     expect(document.getElementById('summary-minimize-button')).not.toBeNull();
+  });
+});
+
+describe('fetchTranscriptFromCaptionsApi', () => {
+  test('should use the newest ytInitialPlayerResponse script', async () => {
+    const oldResp = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [{ baseUrl: 'old', languageCode: 'en' }] } } };
+    const newResp = { captions: { playerCaptionsTracklistRenderer: { captionTracks: [{ baseUrl: 'new', languageCode: 'en' }] } } };
+    document.body.innerHTML = `
+      <script>var ytInitialPlayerResponse = ${JSON.stringify(oldResp)};</script>
+      <script>var ytInitialPlayerResponse = ${JSON.stringify(newResp)};</script>`;
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+
+    await fetchTranscriptFromCaptionsApi();
+    expect(global.fetch).toHaveBeenCalledWith('new&fmt=json3');
+    expect(window.ytInitialPlayerResponse).toEqual(newResp);
   });
 });
