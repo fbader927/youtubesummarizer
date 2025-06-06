@@ -68,14 +68,13 @@ function closeSummarySidePane() {
 }
 
 function clearVideoData() {
-    // Clear cached player response and current video tracking
-    delete window.ytInitialPlayerResponse;
+    // Reset current video tracking only
+    // Avoid deleting ytInitialPlayerResponse so the next video can reuse it
     currentVideoId = null;
 }
 
 window.addEventListener('unload', () => {
     closeSummarySidePane();
-    delete window.ytInitialPlayerResponse;
     currentVideoId = null;
 });
 
@@ -304,18 +303,29 @@ function fetchTranscriptFromCaptionsApi(retryCount = 0) {
                 .filter(s => s.textContent.includes('ytInitialPlayerResponse'));
 
             for (const script of scripts) {
-                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
+                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{[^;]*\});/s);
                 if (matches && matches[1]) {
                     try {
                         const candidate = JSON.parse(matches[1]);
                         const vid = candidate?.videoDetails?.videoId;
                         if (vid === videoId) {
                             playerResponse = candidate;
+                            // Cache the response for later attempts
+                            window.ytInitialPlayerResponse = candidate;
                             break;
                         }
                     } catch (parseError) {
                         console.log('Parse error for script content, trying next...', parseError);
                     }
+                }
+            }
+
+            // If no fresh player response found and we have a cached one, check if it's valid
+            if (!playerResponse && window.ytInitialPlayerResponse) {
+                const cached = window.ytInitialPlayerResponse;
+                const cachedId = cached?.videoDetails?.videoId;
+                if (cachedId === videoId) {
+                    playerResponse = cached;
                 }
             }
 
