@@ -68,7 +68,7 @@ function closeSummarySidePane() {
 }
 
 function clearVideoData() {
-    // Clear cached player response and current video tracking
+    // Clear cached player response and reset tracking
     delete window.ytInitialPlayerResponse;
     currentVideoId = null;
 }
@@ -317,6 +317,11 @@ function fetchTranscriptFromCaptionsApi(retryCount = 0) {
                         console.log('Parse error for script content, trying next...', parseError);
                     }
                 }
+            }
+
+            // Fallback to global player response if available
+            if (!playerResponse && window.ytInitialPlayerResponse?.videoDetails?.videoId === videoId) {
+                playerResponse = window.ytInitialPlayerResponse;
             }
 
             // If still no player response, try to wait and retry
