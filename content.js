@@ -304,29 +304,18 @@ function fetchTranscriptFromCaptionsApi(retryCount = 0) {
                 .filter(s => s.textContent.includes('ytInitialPlayerResponse'));
 
             for (const script of scripts) {
-                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{[^;]*\});/s);
+                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
                 if (matches && matches[1]) {
                     try {
                         const candidate = JSON.parse(matches[1]);
                         const vid = candidate?.videoDetails?.videoId;
                         if (vid === videoId) {
                             playerResponse = candidate;
-                            // Only cache if it matches current video
-                            window.ytInitialPlayerResponse = candidate;
                             break;
                         }
                     } catch (parseError) {
                         console.log('Parse error for script content, trying next...', parseError);
                     }
-                }
-            }
-
-            // If no fresh player response found and we have a cached one, check if it's valid
-            if (!playerResponse && window.ytInitialPlayerResponse) {
-                const cached = window.ytInitialPlayerResponse;
-                const cachedId = cached?.videoDetails?.videoId;
-                if (cachedId === videoId) {
-                    playerResponse = cached;
                 }
             }
 
@@ -400,12 +389,10 @@ function extractTranscript() {
         return;
     }
 
-    // Check if we're on a new video and clear data if needed
+    // Always reset any cached data before starting a new extraction
+    clearVideoData();
     const videoId = getCurrentVideoId();
-    if (currentVideoId !== videoId) {
-        clearVideoData();
-        currentVideoId = videoId;
-    }
+    currentVideoId = videoId;
 
     isSummarizing = true;
     cancelSummarization = false;
