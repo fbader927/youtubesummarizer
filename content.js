@@ -68,8 +68,7 @@ function closeSummarySidePane() {
 }
 
 function clearVideoData() {
-    // Clear cached player response and current video tracking
-    delete window.ytInitialPlayerResponse;
+    // Reset tracking for new videos without touching the player response
     currentVideoId = null;
 }
 
@@ -304,19 +303,26 @@ function fetchTranscriptFromCaptionsApi(retryCount = 0) {
                 .filter(s => s.textContent.includes('ytInitialPlayerResponse'));
 
             for (const script of scripts) {
-                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
+                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{[^;]*\});/s);
                 if (matches && matches[1]) {
                     try {
                         const candidate = JSON.parse(matches[1]);
                         const vid = candidate?.videoDetails?.videoId;
                         if (vid === videoId) {
                             playerResponse = candidate;
+                            // Cache the response for later attempts
+                            window.ytInitialPlayerResponse = candidate;
                             break;
                         }
                     } catch (parseError) {
                         console.log('Parse error for script content, trying next...', parseError);
                     }
                 }
+            }
+
+            // Fallback to global player response if available
+            if (!playerResponse && window.ytInitialPlayerResponse?.videoDetails?.videoId === videoId) {
+                playerResponse = window.ytInitialPlayerResponse;
             }
 
             // If still no player response, try to wait and retry
@@ -483,6 +489,7 @@ injectButton();
 new MutationObserver(injectButton).observe(document.body, { childList: true, subtree: true });
 
 window.addEventListener('yt-navigate-start', () => {
+    delete window.ytInitialPlayerResponse;
     clearVideoData();
     closeSummarySidePane();
 });
