@@ -65,39 +65,18 @@ function closeSummarySidePane() {
 
     hideLoadingIndicator();
     hideSummaryLoading();
-
-    // Clear any transcript cache between videos safely
-    try {
-        if (chrome?.storage?.local) {
-            chrome.storage.local.remove('transcriptText').catch(() => {
-                // Ignore errors - key might not exist
-            });
-        }
-    } catch (e) {
-        // Ignore chrome API errors
-    }
 }
 
 function clearVideoData() {
     // Clear cached player response and current video tracking
     delete window.ytInitialPlayerResponse;
     currentVideoId = null;
-
-    // Clear any stored transcript data safely
-    try {
-        if (chrome?.storage?.local) {
-            chrome.storage.local.remove('transcriptText').catch(() => {
-                // Ignore errors - key might not exist
-            });
-        }
-    } catch (e) {
-        // Ignore chrome API errors
-    }
 }
 
 window.addEventListener('unload', () => {
     closeSummarySidePane();
-    clearVideoData();
+    delete window.ytInitialPlayerResponse;
+    currentVideoId = null;
 });
 
 function showLoadingIndicator() {
@@ -486,16 +465,6 @@ function processTranscriptInChunks(transcriptText) {
             clearInterval(intervalId);
             hideLoadingIndicator();
             hideSummaryLoading();
-            // Clear transcript cache safely
-            try {
-                if (chrome?.storage?.local) {
-                    chrome.storage.local.remove('transcriptText').catch(() => {
-                        // Ignore errors - key might not exist
-                    });
-                }
-            } catch (e) {
-                // Ignore chrome API errors
-            }
             isSummarizing = false;
             return;
         }
