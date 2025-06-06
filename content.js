@@ -68,14 +68,14 @@ function closeSummarySidePane() {
 }
 
 function clearVideoData() {
-    // Reset current video tracking only
-    // Avoid deleting ytInitialPlayerResponse so the next video can reuse it
+    // Fully reset any cached player response and video tracking
+    delete window.ytInitialPlayerResponse;
     currentVideoId = null;
 }
 
 window.addEventListener('unload', () => {
     closeSummarySidePane();
-    currentVideoId = null;
+    clearVideoData();
 });
 
 function showLoadingIndicator() {
@@ -303,7 +303,7 @@ function fetchTranscriptFromCaptionsApi(retryCount = 0) {
                 .filter(s => s.textContent.includes('ytInitialPlayerResponse'));
 
             for (const script of scripts) {
-                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{[^;]*\});/s);
+                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
                 if (matches && matches[1]) {
                     try {
                         const candidate = JSON.parse(matches[1]);
