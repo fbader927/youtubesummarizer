@@ -68,13 +68,14 @@ function closeSummarySidePane() {
 }
 
 function clearVideoData() {
-    // Reset current video tracking only
-    // Avoid deleting ytInitialPlayerResponse so the next video can reuse it
+    // Clear cached player response and reset tracking
+    delete window.ytInitialPlayerResponse;
     currentVideoId = null;
 }
 
 window.addEventListener('unload', () => {
     closeSummarySidePane();
+    delete window.ytInitialPlayerResponse;
     currentVideoId = null;
 });
 
@@ -303,15 +304,13 @@ function fetchTranscriptFromCaptionsApi(retryCount = 0) {
                 .filter(s => s.textContent.includes('ytInitialPlayerResponse'));
 
             for (const script of scripts) {
-                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{[^;]*\});/s);
+                const matches = script.textContent.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
                 if (matches && matches[1]) {
                     try {
                         const candidate = JSON.parse(matches[1]);
                         const vid = candidate?.videoDetails?.videoId;
                         if (vid === videoId) {
                             playerResponse = candidate;
-                            // Cache the response for later attempts
-                            window.ytInitialPlayerResponse = candidate;
                             break;
                         }
                     } catch (parseError) {
@@ -320,13 +319,9 @@ function fetchTranscriptFromCaptionsApi(retryCount = 0) {
                 }
             }
 
-            // If no fresh player response found and we have a cached one, check if it's valid
-            if (!playerResponse && window.ytInitialPlayerResponse) {
-                const cached = window.ytInitialPlayerResponse;
-                const cachedId = cached?.videoDetails?.videoId;
-                if (cachedId === videoId) {
-                    playerResponse = cached;
-                }
+            // Fallback to global player response if available
+            if (!playerResponse && window.ytInitialPlayerResponse?.videoDetails?.videoId === videoId) {
+                playerResponse = window.ytInitialPlayerResponse;
             }
 
             // If still no player response, try to wait and retry
